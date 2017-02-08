@@ -39,14 +39,25 @@ class PasswordlessPresenter: Presentable, Loggable {
     var messagePresenter: MessagePresenter?
 
     var view: View {
-        let view = PasswordlessEmailView(withMode: self.mode, email: self.interactor.identifier)
+        switch self.mode {
+        case .capture:
+            return self.showRequestForm()
+        case .code:
+            return self.showCodeForm()
+        default:
+            return self.showCodeForm()
+        }
+    }
+
+    private func showRequestForm() -> View {
+        let view = PasswordlessEmailView(withMode: .capture, email: self.interactor.identifier)
         let form = view.form
 
         view.form?.onValueChange = { input in
             self.messagePresenter?.hideCurrent()
             guard case .email = input.type else { return }
             do {
-                try self.interactor.updateEmail(input.text)
+                try self.interactor.update(type: .email, value: input.text)
                 input.showValid()
             } catch {
                 input.showError()
@@ -55,11 +66,11 @@ class PasswordlessPresenter: Presentable, Loggable {
 
         let action = { [weak form] (button: PrimaryButton) in
             self.messagePresenter?.hideCurrent()
-            self.logger.info("start passwordless \(self.interactor.identifier)")
+            self.logger.info("request passwordless \(self.interactor.identifier)")
             let interactor = self.interactor
             let connection = self.connection
             button.inProgress = true
-            interactor.start(connection.name) { error in
+            interactor.request(connection.name) { error in
                 Queue.main.async {
                     button.inProgress = false
                     form?.needsToUpdateState()
@@ -78,6 +89,52 @@ class PasswordlessPresenter: Presentable, Loggable {
             guard let button = view.primaryButton else { return }
             action(button)
         }
+        return view
+    }
+
+    private func showCodeForm() -> View {
+        let view = PasswordlessEmailView(withMode: .code, email: self.interactor.identifier)
+        let form = view.form
+
+        view.form?.onValueChange = { input in
+            self.messagePresenter?.hideCurrent()
+            guard case .oneTimePassword = input.type else { return }
+            do {
+                try self.interactor.update(type: .oneTimePassword, value: input.text)
+                input.showValid()
+            } catch {
+                input.showError()
+            }
+        }
+
+        let action = { [weak form] (button: PrimaryButton) in
+            self.messagePresenter?.hideCurrent()
+            self.logger.info("login passwordless \(self.interactor.identifier)")
+            let interactor = self.interactor
+            let connection = self.connection
+            button.inProgress = true
+            interactor.login(connection.name) { error in
+                Queue.main.async {
+                    button.inProgress = false
+                    form?.needsToUpdateState()
+                    if let error = error {
+                        self.messagePresenter?.showError(error)
+                        self.logger.error("Failed with error \(error)")
+                    }
+                }
+            }
+        }
+
+        view.primaryButton?.onPress = action
+        view.form?.onReturn = { [unowned view] _ in
+            guard let button = view.primaryButton else { return }
+            action(button)
+        }
+
+        view.secondaryButton?.onPress = { button in
+            self.navigator.onBack()
+        }
+
         return view
     }
 }

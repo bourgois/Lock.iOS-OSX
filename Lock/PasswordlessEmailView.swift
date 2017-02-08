@@ -29,15 +29,59 @@ class PasswordlessEmailView: UIView, View {
     weak var secondaryButton: SecondaryButton?
 
     init(withMode mode: PasswordlessMode, email: String?) {
+        super.init(frame: CGRect.zero)
+
+        switch mode {
+        case .capture:
+            self.showRequest(email: email)
+        default:
+            self.showCode(email: email)
+        }
+    }
+
+    private func showRequest(email: String?) {
         let primaryButton = PrimaryButton()
-        let secondaryButton = SecondaryButton()
         let formView = SingleInputView()
         let center = UILayoutGuide()
 
         self.primaryButton = primaryButton
         self.form = formView
 
-        super.init(frame: CGRect.zero)
+        self.addSubview(formView)
+        self.addSubview(primaryButton)
+        self.addLayoutGuide(center)
+
+        constraintEqual(anchor: center.leftAnchor, toAnchor: self.leftAnchor, constant: 20)
+        constraintEqual(anchor: center.topAnchor, toAnchor: self.topAnchor)
+        constraintEqual(anchor: center.rightAnchor, toAnchor: self.rightAnchor, constant: -20)
+        constraintEqual(anchor: center.bottomAnchor, toAnchor: primaryButton.topAnchor)
+
+        constraintEqual(anchor: formView.leftAnchor, toAnchor: center.leftAnchor)
+        constraintEqual(anchor: formView.rightAnchor, toAnchor: center.rightAnchor)
+        constraintEqual(anchor: formView.centerYAnchor, toAnchor: center.centerYAnchor, constant: -20)
+        constraintGreaterOrEqual(anchor: formView.topAnchor, toAnchor: center.topAnchor)
+        formView.translatesAutoresizingMaskIntoConstraints = false
+
+        constraintEqual(anchor: primaryButton.leftAnchor, toAnchor: self.leftAnchor)
+        constraintEqual(anchor: primaryButton.rightAnchor, toAnchor: self.rightAnchor)
+        constraintEqual(anchor: primaryButton.bottomAnchor, toAnchor: self.bottomAnchor)
+        primaryButton.translatesAutoresizingMaskIntoConstraints = false
+
+        formView.type = .email
+        formView.returnKey = .done
+        formView.message = "Enter your email address to sign in or create an account".i18n(key: "com.auth0.passwordless.email.title", comment: "Passwordless email title")
+        formView.value = email
+    }
+
+    private func showCode(email: String?) {
+        let primaryButton = PrimaryButton()
+        let secondaryButton = SecondaryButton()
+        let formView = SingleInputView()
+        let center = UILayoutGuide()
+
+        self.primaryButton = primaryButton
+        self.secondaryButton = secondaryButton
+        self.form = formView
 
         self.addSubview(formView)
         self.addSubview(primaryButton)
@@ -57,7 +101,7 @@ class PasswordlessEmailView: UIView, View {
 
         constraintEqual(anchor: secondaryButton.leftAnchor, toAnchor: center.leftAnchor)
         constraintEqual(anchor: secondaryButton.rightAnchor, toAnchor: center.rightAnchor)
-        constraintEqual(anchor: secondaryButton.topAnchor, toAnchor: formView.bottomAnchor)
+        constraintGreaterOrEqual(anchor: secondaryButton.topAnchor, toAnchor: formView.bottomAnchor)
         secondaryButton.translatesAutoresizingMaskIntoConstraints = false
 
         constraintEqual(anchor: primaryButton.leftAnchor, toAnchor: self.leftAnchor)
@@ -65,19 +109,11 @@ class PasswordlessEmailView: UIView, View {
         constraintEqual(anchor: primaryButton.bottomAnchor, toAnchor: self.bottomAnchor)
         primaryButton.translatesAutoresizingMaskIntoConstraints = false
 
-        switch mode {
-            case .capture:
-                formView.type = .email
-                formView.returnKey = .done
-                formView.message = "Enter your email address to sign in or create an account".i18n(key: "com.auth0.passwordless.email.title", comment: "Passwordless email title")
-                formView.value = email
-            case .code:
-                formView.type = .phone
-                formView.returnKey = .done
-                formView.message = "An email with the code has been sent to ".i18n(key: "com.auth0.passwordless.email.code.sent", comment: "Passwordless email code sent title") + email!
-        default:
-            break
-        }
+        secondaryButton.title = "Did not get the code?".i18n(key: "com.auth0.passwordless.code.reminder", comment: "Passwordless code reminder action")
+
+        formView.type = .oneTimePassword
+        formView.returnKey = .done
+        formView.message = "An email with the code has been sent to ".i18n(key: "com.auth0.passwordless.email.code.sent", comment: "Passwordless email code sent title") + email!
     }
 
     required init?(coder aDecoder: NSCoder) {

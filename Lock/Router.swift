@@ -35,6 +35,7 @@ protocol Navigable {
     func resetScroll(_ animated: Bool)
     func scroll(toPosition: CGPoint, animated: Bool)
 
+    func onBack() -> ()
 }
 
 struct Router: Navigable {

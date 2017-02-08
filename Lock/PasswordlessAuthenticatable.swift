@@ -26,6 +26,7 @@ import Auth0
 protocol PasswordlessAuthenticatable {
     var identifier: String? { get }
 
-    mutating func updateEmail(_ value: String?) throws
-    func start(_ connection: String, callback: @escaping (PasswordlessAuthenticatableError?) -> ())
+    mutating func update(type: InputField.InputType, value: String?) throws
+    func request(_ connection: String, callback: @escaping (PasswordlessAuthenticatableError?) -> ())
+    func login(_ connection: String, callback: @escaping (DatabaseAuthenticatableError?) -> ())
 }
