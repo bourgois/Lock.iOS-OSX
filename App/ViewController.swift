@@ -51,7 +51,6 @@ class ViewController: UIViewController {
                         .withOptions {
                             applyDefaultOptions(&$0)
                             $0.loginAfterSignup = false
-                            $0.enterpriseConnectionUsingActiveAuth = ["contoso-ad"]
                         }
                         .withStyle {
                             $0.oauth2["slack"] = AuthStyle(

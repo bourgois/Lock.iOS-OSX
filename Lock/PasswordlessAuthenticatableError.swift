@@ -1,6 +1,6 @@
-// NotificationStatus.swift
+// PasswordlessAuthenticatableError.swift
 //
-// Copyright (c) 2016 Auth0 (http://auth0.com)
+// Copyright (c) 2017 Auth0 (http://auth0.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,18 @@
 
 import Foundation
 
-enum PasswordlessMode {
-    case capture
-    case code
-    case magicLink
+enum PasswordlessAuthenticatableError: Error, LocalizableError {
+    case nonValidInput
+    case codeNotSent
+
+    var localizableMessage: String {
+        switch self {
+        default:
+            return "We're sorry, something went wrong when attempting to sign up.".i18n(key: "com.auth0.lock.error.signup.fallback", comment: "Generic sign up error")
+        }
+    }
+
+    var userVisible: Bool {
+        return true
+    }
 }

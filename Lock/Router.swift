@@ -55,8 +55,12 @@ struct Router: Navigable {
             let interactor = CDNLoaderInteractor(baseURL: self.lock.authentication.url, clientId: self.lock.authentication.clientId)
             return ConnectionLoadingPresenter(loader: interactor, navigator: self, dispatcher: lock.observerStore, options: self.lock.options)
         }
-
         let whitelistForActiveAuth = self.lock.options.enterpriseConnectionUsingActiveAuth
+        if let passwordless = connections.passwordless.filter({ $0.name == "email" }).first {
+            let interactor = PasswordlessInteractor(authentication: self.lock.authentication, dispatcher: lock.observerStore, user: self.user, options: self.lock.options)
+            let presenter = PasswordlessPresenter(interactor: interactor, connection: passwordless, navigator: self, mode: .capture)
+            return presenter
+        }
         switch (connections.database, connections.oauth2, connections.enterprise) {
                 // Database root
             case (.some(let database), let oauth2, let enterprise):
@@ -142,6 +146,12 @@ struct Router: Navigable {
         return presenter
     }
 
+    func passwordless(withMode mode: PasswordlessMode, connection: PasswordlessConnection) -> Presentable? {
+        let interactor = PasswordlessInteractor(authentication: self.lock.authentication, dispatcher: lock.observerStore, user: self.user, options: self.lock.options)
+        let presenter = PasswordlessPresenter(interactor: interactor, connection: connection, navigator: self, mode: mode)
+        return presenter
+    }
+
     var showBack: Bool {
         guard let routes = self.controller?.routes else { return false }
         return !routes.history.isEmpty
@@ -187,6 +197,8 @@ struct Router: Navigable {
             presentable = self.enterpriseActiveAuth(connection: connection, domain: domain)
         case .unrecoverableError(let error):
             presentable = self.unrecoverableError(error)
+        case .passwordlessEmail(let mode, let connection):
+            presentable = self.passwordless(withMode: mode, connection: connection)
         default:
             self.lock.logger.warn("Ignoring navigation \(route)")
             return

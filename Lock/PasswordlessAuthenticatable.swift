@@ -1,6 +1,6 @@
-// NotificationStatus.swift
+// PasswordlessAuthenticatable.swift
 //
-// Copyright (c) 2016 Auth0 (http://auth0.com)
+// Copyright (c) 2017 Auth0 (http://auth0.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,9 +21,11 @@
 // THE SOFTWARE.
 
 import Foundation
+import Auth0
 
-enum PasswordlessMode {
-    case capture
-    case code
-    case magicLink
+protocol PasswordlessAuthenticatable {
+    var identifier: String? { get }
+
+    mutating func updateEmail(_ value: String?) throws
+    func start(_ connection: String, callback: @escaping (PasswordlessAuthenticatableError?) -> ())
 }
