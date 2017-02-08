@@ -57,7 +57,7 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
         }
     }
 
-    func login(_ connection: String, callback: @escaping (DatabaseAuthenticatableError?) -> ()) {
+    func login(_ connection: String, callback: @escaping (CredentialAuthError?) -> ()) {
         guard let password = self.code, self.validCode, let identifier = self.identifier, self.user.validEmail  else { return callback(.nonValidInput) }
 
         let credentialAuth = CredentialAuth(oidc: options.oidcConformant, realm: connection, authentication: authentication)
@@ -69,7 +69,7 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
                 case .failure(let cause):
                     self.logger.error("Failed login of user <\(self.identifier)> with error \(cause)")
                     callback(.couldNotLogin)
-                    self.dispatcher.dispatch(result: .error(DatabaseAuthenticatableError.couldNotLogin))
+                    self.dispatcher.dispatch(result: .error(CredentialAuthError.couldNotLogin))
                 case .success(let credentials):
                     self.logger.info("Authenticated user <\(self.identifier)>")
                     callback(nil)

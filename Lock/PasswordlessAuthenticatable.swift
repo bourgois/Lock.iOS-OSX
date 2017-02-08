@@ -28,5 +28,5 @@ protocol PasswordlessAuthenticatable {
 
     mutating func update(type: InputField.InputType, value: String?) throws
     func request(_ connection: String, callback: @escaping (PasswordlessAuthenticatableError?) -> ())
-    func login(_ connection: String, callback: @escaping (DatabaseAuthenticatableError?) -> ())
+    func login(_ connection: String, callback: @escaping (CredentialAuthError?) -> ())
 }
