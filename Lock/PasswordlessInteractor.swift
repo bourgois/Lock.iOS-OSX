@@ -21,6 +21,7 @@
 // THE SOFTWARE.
 
 import Foundation
+import UIKit
 import Auth0
 
 struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
@@ -47,36 +48,49 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
     func request(_ connection: String, callback: @escaping (PasswordlessAuthenticatableError?) -> ()) {
         guard let identifier = self.identifier, self.user.validEmail else { return callback(.nonValidInput) }
 
-        self.authentication.startPasswordless(email: identifier, type: .Code, connection: connection, parameters: self.options.parameters).start {
+        let type: PasswordlessType
+        if self.options.passwordlessMethod == .code {
+            type = .Code
+        } else {
+            type = .iOSLink
+        }
+
+        self.authentication.startPasswordless(email: identifier, type: type, connection: connection, parameters: self.options.parameters).start {
             guard case .success = $0 else {
                 callback(.codeNotSent)
                 return self.dispatcher.dispatch(result: .error(PasswordlessAuthenticatableError.codeNotSent))
             }
-            //self.dispatcher.dispatch(result: .forgotPassword(identifier))
             callback(nil)
+            self.dispatcher.dispatch(result: .forgotPassword(identifier))
+            PasswordlessInteractor.onActivity = { password in
+                self.login(connection, identifier: identifier, password: password) { _ in }
+            }
         }
     }
 
     func login(_ connection: String, callback: @escaping (CredentialAuthError?) -> ()) {
-        guard let password = self.code, self.validCode, let identifier = self.identifier, self.user.validEmail  else { return callback(.nonValidInput) }
+        guard let password = code ?? self.code, self.validCode, let identifier = identifier ?? self.identifier, self.user.validEmail
+            else { return callback(.nonValidInput) }
 
         let credentialAuth = CredentialAuth(oidc: options.oidcConformant, realm: connection, authentication: authentication)
 
         credentialAuth
             .request(withIdentifier: identifier, password: password, options: self.options)
             .start { result in
-                switch result {
-                case .failure(let cause):
-                    self.logger.error("Failed login of user <\(self.identifier)> with error \(cause)")
-                    callback(.couldNotLogin)
-                    self.dispatcher.dispatch(result: .error(CredentialAuthError.couldNotLogin))
-                case .success(let credentials):
-                    self.logger.info("Authenticated user <\(self.identifier)>")
-                    callback(nil)
-                    self.dispatcher.dispatch(result: .auth(credentials))
-                }
+                self.handle(identifier: identifier, result: result, callback: callback)
         }
 
+    }
+
+    private func login(_ connection: String, identifier: String, password: String, callback: @escaping (CredentialAuthError?) -> ()) {
+
+        let credentialAuth = CredentialAuth(oidc: options.oidcConformant, realm: connection, authentication: authentication)
+
+        credentialAuth
+            .request(withIdentifier: identifier, password: password, options: self.options)
+            .start { result in
+                self.handle(identifier: identifier, result: result, callback: callback)
+        }
     }
 
     mutating func update(type: InputField.InputType, value: String?) throws {
@@ -104,5 +118,23 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
         let error = self.codeValidator.validate(code)
         self.validCode = error == nil
         return error
+    }
+}
+
+extension PasswordlessInteractor: PasswordlessAuthenticableActivity {
+    static var onActivity: (String) -> () = { _ in }
+
+    static func continueAuth(withActivity userActivity: NSUserActivity) -> Bool {
+
+        guard userActivity.activityType == NSUserActivityTypeBrowsingWeb, let url = userActivity.webpageURL,
+            let components = URLComponents(url: url, resolvingAgainstBaseURL: true) else { return false }
+
+        guard components.path.lowercased().contains(Bundle.main.bundleIdentifier!.lowercased()),
+            let items = components.queryItems else { return false }
+
+        guard let key = items.filter({ $0.name == "code" }).first, let code = key.value, Int(code) != nil else { return false }
+
+        onActivity(code)
+        return true
     }
 }

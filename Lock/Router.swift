@@ -59,7 +59,7 @@ struct Router: Navigable {
         let whitelistForActiveAuth = self.lock.options.enterpriseConnectionUsingActiveAuth
         if let passwordless = connections.passwordless.filter({ $0.name == "email" }).first {
             let interactor = PasswordlessInteractor(authentication: self.lock.authentication, dispatcher: lock.observerStore, user: self.user, options: self.lock.options)
-            let presenter = PasswordlessPresenter(interactor: interactor, connection: passwordless, navigator: self, mode: .capture)
+            let presenter = PasswordlessPresenter(interactor: interactor, connection: passwordless, navigator: self, screen: .request)
             return presenter
         }
         switch (connections.database, connections.oauth2, connections.enterprise) {
@@ -147,9 +147,9 @@ struct Router: Navigable {
         return presenter
     }
 
-    func passwordless(withMode mode: PasswordlessMode, connection: PasswordlessConnection) -> Presentable? {
+    func passwordless(withScreen screen: PasswordlessScreen, connection: PasswordlessConnection) -> Presentable? {
         let interactor = PasswordlessInteractor(authentication: self.lock.authentication, dispatcher: lock.observerStore, user: self.user, options: self.lock.options)
-        let presenter = PasswordlessPresenter(interactor: interactor, connection: connection, navigator: self, mode: mode)
+        let presenter = PasswordlessPresenter(interactor: interactor, connection: connection, navigator: self, screen: screen)
         return presenter
     }
 
@@ -198,8 +198,8 @@ struct Router: Navigable {
             presentable = self.enterpriseActiveAuth(connection: connection, domain: domain)
         case .unrecoverableError(let error):
             presentable = self.unrecoverableError(error)
-        case .passwordlessEmail(let mode, let connection):
-            presentable = self.passwordless(withMode: mode, connection: connection)
+        case .passwordlessEmail(let screen, let connection):
+            presentable = self.passwordless(withScreen: screen, connection: connection)
         default:
             self.lock.logger.warn("Ignoring navigation \(route)")
             return

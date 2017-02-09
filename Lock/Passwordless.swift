@@ -22,6 +22,13 @@
 
 import Foundation
 
-enum NotificationStatus {
-    case signedUp
+enum PasswordlessScreen {
+    case request
+    case code
+    case magicLink
+}
+
+public enum PasswordlessMethod: Int, Equatable {
+    case code = 0
+    case magicLink
 }

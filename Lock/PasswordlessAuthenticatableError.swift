@@ -25,6 +25,7 @@ import Foundation
 enum PasswordlessAuthenticatableError: Error, LocalizableError {
     case nonValidInput
     case codeNotSent
+    case invalidLink
 
     var localizableMessage: String {
         switch self {

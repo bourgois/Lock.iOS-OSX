@@ -23,10 +23,16 @@
 import Foundation
 import Auth0
 
-protocol PasswordlessAuthenticatable {
+protocol PasswordlessAuthenticatable: CredentialAuthenticatable {
     var identifier: String? { get }
 
     mutating func update(type: InputField.InputType, value: String?) throws
+
     func request(_ connection: String, callback: @escaping (PasswordlessAuthenticatableError?) -> ())
     func login(_ connection: String, callback: @escaping (CredentialAuthError?) -> ())
+}
+
+protocol PasswordlessAuthenticableActivity {
+    static var onActivity: (String) -> () { get }
+    static func continueAuth(withActivity userActivity: NSUserActivity) -> Bool
 }

@@ -46,4 +46,6 @@ public protocol Options {
 
     var oidcConformant: Bool { get }
     var audience: String? { get }
+
+    var passwordlessMethod: PasswordlessMethod { get }
 }

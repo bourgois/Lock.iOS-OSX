@@ -50,7 +50,7 @@ enum Route: Equatable {
     case multifactor
     case enterpriseActiveAuth(connection: EnterpriseConnection, domain: String)
     case unrecoverableError(error: UnrecoverableError)
-    case passwordlessEmail(mode: PasswordlessMode, connection: PasswordlessConnection)
+    case passwordlessEmail(screen: PasswordlessScreen, connection: PasswordlessConnection)
 
     func title(withStyle style: Style) -> String? {
         switch self {
@@ -72,8 +72,8 @@ func == (lhs: Route, rhs: Route) -> Bool {
         return lhsConnection.name == rhsConnection.name && lhsDomain == rhsDomain
     case (.unrecoverableError(let lhsError), .unrecoverableError(let rhsError)):
         return lhsError == rhsError
-    case (.passwordlessEmail(let lhsMode, let lhsConnection), .passwordlessEmail(let rhsMode, let rhsConnection)):
-        return lhsMode == rhsMode && lhsConnection.name == rhsConnection.name
+    case (.passwordlessEmail(let lhsScreen, let lhsConnection), .passwordlessEmail(let rhsScreen, let rhsConnection)):
+        return lhsScreen == rhsScreen && lhsConnection.name == rhsConnection.name
     default:
         return false
     }

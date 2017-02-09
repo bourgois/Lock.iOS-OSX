@@ -27,20 +27,20 @@ class PasswordlessPresenter: Presentable, Loggable {
     var interactor: PasswordlessAuthenticatable
     let connection: PasswordlessConnection
     let navigator: Navigable
-    let mode: PasswordlessMode
+    let screen: PasswordlessScreen
 
-    init(interactor: PasswordlessAuthenticatable, connection: PasswordlessConnection, navigator: Navigable, mode: PasswordlessMode) {
+    init(interactor: PasswordlessAuthenticatable, connection: PasswordlessConnection, navigator: Navigable, screen: PasswordlessScreen) {
         self.interactor = interactor
         self.connection = connection
         self.navigator = navigator
-        self.mode = mode
+        self.screen = screen
     }
 
     var messagePresenter: MessagePresenter?
 
     var view: View {
-        switch self.mode {
-        case .capture:
+        switch self.screen {
+        case .request:
             return self.showRequestForm()
         case .code:
             return self.showCodeForm()
@@ -50,7 +50,7 @@ class PasswordlessPresenter: Presentable, Loggable {
     }
 
     private func showRequestForm() -> View {
-        let view = PasswordlessEmailView(withMode: .capture, email: self.interactor.identifier)
+        let view = PasswordlessEmailView(withView: .request, email: self.interactor.identifier)
         let form = view.form
 
         view.form?.onValueChange = { input in
@@ -78,7 +78,7 @@ class PasswordlessPresenter: Presentable, Loggable {
                         self.messagePresenter?.showError(error)
                         self.logger.error("Failed with error \(error)")
                     } else {
-                        self.navigator.navigate(Route.passwordlessEmail(mode: .code, connection: connection))
+                        self.navigator.navigate(Route.passwordlessEmail(screen: .code, connection: connection))
                     }
                 }
             }
@@ -93,7 +93,7 @@ class PasswordlessPresenter: Presentable, Loggable {
     }
 
     private func showCodeForm() -> View {
-        let view = PasswordlessEmailView(withMode: .code, email: self.interactor.identifier)
+        let view = PasswordlessEmailView(withView: .code, email: self.interactor.identifier)
         let form = view.form
 
         view.form?.onValueChange = { input in

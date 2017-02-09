@@ -28,12 +28,14 @@ class PasswordlessEmailView: UIView, View {
     weak var primaryButton: PrimaryButton?
     weak var secondaryButton: SecondaryButton?
 
-    init(withMode mode: PasswordlessMode, email: String?) {
+    init(withView view: PasswordlessScreen, email: String?) {
         super.init(frame: CGRect.zero)
 
-        switch mode {
-        case .capture:
+        switch view {
+        case .request:
             self.showRequest(email: email)
+        case .code:
+            self.showCode(email: email)
         default:
             self.showCode(email: email)
         }

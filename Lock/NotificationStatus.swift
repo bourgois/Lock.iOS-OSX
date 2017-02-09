@@ -22,8 +22,7 @@
 
 import Foundation
 
-enum PasswordlessMode {
-    case capture
-    case code
-    case magicLink
+enum NotificationStatus {
+    case signedUp
 }
+

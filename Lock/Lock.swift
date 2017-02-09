@@ -251,6 +251,10 @@ public class Lock: NSObject {
     public static func resumeAuth(_ url: URL, options: [UIApplicationOpenURLOptionsKey: Any]) -> Bool {
         return Auth0.resumeAuth(url, options: options)
     }
+
+    public static func continueActivity(_ userActivity: NSUserActivity, restorationHandler: @escaping ([Any]?) -> Void) -> Bool {
+        return PasswordlessInteractor.continueAuth(withActivity: userActivity)
+    }
 }
 
 struct ConnectionProvider {

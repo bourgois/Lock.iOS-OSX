@@ -45,3 +45,7 @@ fastlane/report.xml
 
 #AppCode
 .idea/
+
+#Entitlements
+LockApp.entitlements
+
