@@ -126,36 +126,3 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
         return error
     }
 }
-
-class PasswordlessActivity: PasswordlessUserActivity {
-
-    static let shared = PasswordlessActivity()
-
-    private(set) var onActivity: (String, inout MessagePresenter?) -> () = { _ in }
-    private(set) var messagePresenter: MessagePresenter?
-
-    private init() {}
-
-    func onActivity(callback: @escaping (String, inout MessagePresenter?) -> ()) {
-        self.onActivity = callback
-    }
-
-    func withMessagePresenter(_ messagePresenter: MessagePresenter?) -> Self {
-        self.messagePresenter = messagePresenter
-        return self
-    }
-
-    func continueAuth(withActivity userActivity: NSUserActivity) -> Bool {
-        guard userActivity.activityType == NSUserActivityTypeBrowsingWeb, let url = userActivity.webpageURL,
-            let components = URLComponents(url: url, resolvingAgainstBaseURL: true) else { return false }
-
-        guard components.path.lowercased().contains(Bundle.main.bundleIdentifier!.lowercased()),
-            let items = components.queryItems else { return false }
-
-        guard let key = items.filter({ $0.name == "code" }).first, let code = key.value else { return false }
-
-        self.onActivity(code, &messagePresenter)
-        self.onActivity = { _ in }
-        return true
-    }
-}

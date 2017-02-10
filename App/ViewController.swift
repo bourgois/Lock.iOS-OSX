@@ -51,7 +51,7 @@ class ViewController: UIViewController {
                         .withOptions {
                             applyDefaultOptions(&$0)
                             $0.loginAfterSignup = false
-                            $0.passwordlessMethod = .magicLink
+                            //$0.passwordlessMethod = .magicLink
                         }
                         .withStyle {
                             $0.oauth2["slack"] = AuthStyle(

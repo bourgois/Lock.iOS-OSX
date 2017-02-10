@@ -95,6 +95,9 @@ class MockNavigator: Navigable {
     func header(withTitle title: String, animated: Bool) {
         self.headerTitle = title
     }
+
+    func onBack() -> () {
+    }
 }
 
 func mockInput(_ type: InputField.InputType, value: String? = nil) -> MockInputField {
@@ -298,5 +301,26 @@ class MockController: UIViewController {
     override func dismiss(animated flag: Bool, completion: (() -> Void)?) {
         self.presented = nil
         completion?()
+    }
+}
+
+class MockPasswordlessActivity: PasswordlessUserActivity {
+
+    var messagePresenter: MessagePresenter?
+    var onActivity: (String, inout MessagePresenter?) -> () = { _ in }
+    var code: String = "123456"
+
+    func withMessagePresenter(_ messagePresenter: MessagePresenter?) -> Self {
+        self.messagePresenter = messagePresenter
+        return self
+    }
+
+    func onActivity(callback: @escaping (String, inout MessagePresenter?) -> ()) {
+        self.onActivity = callback
+    }
+
+    func continueAuth(withActivity userActivity: NSUserActivity) -> Bool {
+        self.onActivity(code, &messagePresenter)
+        return true
     }
 }

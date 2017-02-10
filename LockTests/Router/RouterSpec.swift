@@ -135,6 +135,13 @@ class RouterSpec: QuickSpec {
                 expect(router.root as? DatabaseForgotPasswordPresenter).toNot(beNil())
             }
 
+            it("should return root for one passwordless") {
+                _ = lock.withConnections {
+                    $0.passwordless(name: "email")
+                }
+                expect(router.root as? PasswordlessPresenter).toNot(beNil())
+            }
+
         }
 
         describe("events") {
