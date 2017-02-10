@@ -25,16 +25,26 @@ import Foundation
 enum PasswordlessAuthenticatableError: Error, LocalizableError {
     case nonValidInput
     case codeNotSent
+    case noSignup
     case invalidLink
 
     var localizableMessage: String {
         switch self {
+        case .invalidLink:
+            return "We're sorry, there was a problem with your link. Please request a new one.".i18n(key: "com.auth0.lock.error.passwordless.invalid_link", comment: "Passwordless link invalid.")
+        case .noSignup:
+            return "New sign ups are disabled for this account, please contact your administrator".i18n(key: "com.auth0.lock.error.passwordless.sign_ups", comment: "Passwordless sign ups disabled.")
         default:
-            return "We're sorry, something went wrong when attempting to sign up.".i18n(key: "com.auth0.lock.error.signup.fallback", comment: "Generic sign up error")
+            return "We're sorry, something went wrong when attempting to log in.".i18n(key: "com.auth0.lock.error.authentication.fallback", comment: "Generic login error")
         }
     }
 
     var userVisible: Bool {
-        return true
+        switch self {
+        case .nonValidInput:
+            return false
+        default:
+            return true
+        }
     }
 }

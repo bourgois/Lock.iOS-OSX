@@ -32,7 +32,7 @@ protocol PasswordlessAuthenticatable: CredentialAuthenticatable {
     func login(_ connection: String, callback: @escaping (CredentialAuthError?) -> ())
 }
 
-protocol PasswordlessAuthenticableActivity {
+protocol PasswordlessActivity {
     static var onActivity: (String) -> () { get }
     static func continueAuth(withActivity userActivity: NSUserActivity) -> Bool
 }

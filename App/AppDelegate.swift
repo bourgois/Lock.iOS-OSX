@@ -24,7 +24,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([Any]?) -> Void) -> Bool {
-        return Lock.continueActivity(userActivity, restorationHandler: restorationHandler)
+        return Lock.continueActivity(userActivity)
     }
     
 }

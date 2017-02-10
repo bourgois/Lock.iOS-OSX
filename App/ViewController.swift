@@ -180,7 +180,7 @@ class ViewController: UIViewController {
             .onAuth { Log.info?.message("Obtained credentials \($0)") }
             .onError { Log.error?.message("Failed with \($0)") }
             .onCancel { Log.debug?.message("User closed lock") }
-            .onPasswordless
+            .onPasswordless { Log.debug?.message("Passwordless \($1) requested for \($0)") }
             .present(from: self)
     }
 }

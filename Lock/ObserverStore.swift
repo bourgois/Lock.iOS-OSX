@@ -29,8 +29,8 @@ struct ObserverStore: Dispatcher {
     var onCancel: () -> () = {  }
     var onSignUp: (String, [String: Any]) -> () = { _ in }
     var onForgotPassword: (String) -> () = { _ in }
-    var options: Options = LockOptions()
     var onPasswordless: (String, PasswordlessMethod) -> () = { _ in }
+    var options: Options = LockOptions()
 
     weak var controller: UIViewController?
 

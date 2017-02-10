@@ -48,22 +48,35 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
     func request(_ connection: String, callback: @escaping (PasswordlessAuthenticatableError?) -> ()) {
         guard let identifier = self.identifier, self.user.validEmail else { return callback(.nonValidInput) }
 
-        let type: PasswordlessType
-        if self.options.passwordlessMethod == .code {
-            type = .Code
-        } else {
-            type = .iOSLink
-        }
+        let type = self.options.passwordlessMethod == .code ? PasswordlessType.Code : PasswordlessType.iOSLink
 
         self.authentication.startPasswordless(email: identifier, type: type, connection: connection, parameters: self.options.parameters).start {
-            guard case .success = $0 else {
+            switch $0 {
+            case .success:
+                callback(nil)
+                self.dispatcher.dispatch(result: .passwordless(identifier, self.options.passwordlessMethod))
+
+                if type == .iOSLink {
+                    PasswordlessInteractor.onActivity = { password in
+                        guard Int(password) != nil else {
+                            return self.dispatcher.dispatch(result: .error(PasswordlessAuthenticatableError.invalidLink))
+                        }
+
+                        CredentialAuth(oidc: self.options.oidcConformant, realm: connection, authentication: self.authentication)
+                            .request(withIdentifier: identifier, password: password, options: self.options)
+                            .start { result in
+                                self.handle(identifier: identifier, result: result) { error in
+
+                                }
+                        }
+                    }
+                }
+            case .failure(let cause as AuthenticationError) where cause.code == "bad.connection":
+                callback(.noSignup)
+                self.dispatcher.dispatch(result: .error(PasswordlessAuthenticatableError.noSignup))
+            case .failure:
                 callback(.codeNotSent)
                 return self.dispatcher.dispatch(result: .error(PasswordlessAuthenticatableError.codeNotSent))
-            }
-            callback(nil)
-            self.dispatcher.dispatch(result: .forgotPassword(identifier))
-            PasswordlessInteractor.onActivity = { password in
-                self.login(connection, identifier: identifier, password: password) { _ in }
             }
         }
     }
@@ -80,17 +93,6 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
                 self.handle(identifier: identifier, result: result, callback: callback)
         }
 
-    }
-
-    private func login(_ connection: String, identifier: String, password: String, callback: @escaping (CredentialAuthError?) -> ()) {
-
-        let credentialAuth = CredentialAuth(oidc: options.oidcConformant, realm: connection, authentication: authentication)
-
-        credentialAuth
-            .request(withIdentifier: identifier, password: password, options: self.options)
-            .start { result in
-                self.handle(identifier: identifier, result: result, callback: callback)
-        }
     }
 
     mutating func update(type: InputField.InputType, value: String?) throws {
@@ -121,20 +123,21 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
     }
 }
 
-extension PasswordlessInteractor: PasswordlessAuthenticableActivity {
+extension PasswordlessInteractor: PasswordlessActivity {
+
     static var onActivity: (String) -> () = { _ in }
 
     static func continueAuth(withActivity userActivity: NSUserActivity) -> Bool {
-
         guard userActivity.activityType == NSUserActivityTypeBrowsingWeb, let url = userActivity.webpageURL,
             let components = URLComponents(url: url, resolvingAgainstBaseURL: true) else { return false }
 
         guard components.path.lowercased().contains(Bundle.main.bundleIdentifier!.lowercased()),
             let items = components.queryItems else { return false }
 
-        guard let key = items.filter({ $0.name == "code" }).first, let code = key.value, Int(code) != nil else { return false }
+        guard let key = items.filter({ $0.name == "code" }).first, let code = key.value else { return false }
 
         onActivity(code)
+        onActivity = { _ in }
         return true
     }
 }

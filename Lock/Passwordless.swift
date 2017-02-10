@@ -25,7 +25,7 @@ import Foundation
 enum PasswordlessScreen {
     case request
     case code
-    case magicLink
+    case linkSent
 }
 
 public enum PasswordlessMethod: Int, Equatable {
