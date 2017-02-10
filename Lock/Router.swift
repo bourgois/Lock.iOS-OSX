@@ -62,7 +62,8 @@ struct Router: Navigable {
                 // Passwordless
             case (nil, let oauth2, let enterprise, let passwordless) where oauth2.isEmpty && enterprise.isEmpty && !passwordless.isEmpty:
                 guard let connection = passwordless.filter({ $0.name == "email" }).first else { return nil }
-                let interactor = PasswordlessInteractor(authentication: self.lock.authentication, dispatcher: lock.observerStore, user: self.user, options: self.lock.options)
+                let passwordlessActivity = PasswordlessActivity.shared.withMessagePresenter(self.controller?.messagePresenter)
+                let interactor = PasswordlessInteractor(authentication: self.lock.authentication, dispatcher: lock.observerStore, user: self.user, options: self.lock.options, passwordlessActivity: passwordlessActivity)
                 let presenter = PasswordlessPresenter(interactor: interactor, connection: connection, navigator: self, options: self.lock.options)
                 return presenter
                 // Database root
@@ -150,7 +151,8 @@ struct Router: Navigable {
     }
 
     func passwordless(withScreen screen: PasswordlessScreen, connection: PasswordlessConnection) -> Presentable? {
-        let interactor = PasswordlessInteractor(authentication: self.lock.authentication, dispatcher: lock.observerStore, user: self.user, options: self.lock.options)
+        let passwordlessActivity = PasswordlessActivity.shared.withMessagePresenter(self.controller?.messagePresenter)
+        let interactor = PasswordlessInteractor(authentication: self.lock.authentication, dispatcher: lock.observerStore, user: self.user, options: self.lock.options, passwordlessActivity: passwordlessActivity)
         let presenter = PasswordlessPresenter(interactor: interactor, connection: connection, navigator: self, options: self.lock.options, screen: screen)
         return presenter
     }

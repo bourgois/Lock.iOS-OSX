@@ -30,6 +30,7 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
     let dispatcher: Dispatcher
     let user: User
     let options: Options
+    let passwordlessActivity: PasswordlessUserActivity
 
     let emailValidator: InputValidator = EmailValidator()
     let codeValidator: InputValidator = OneTimePasswordValidator()
@@ -38,11 +39,12 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
     var code: String? = nil
     var validCode: Bool = false
 
-    init(authentication: Authentication, dispatcher: Dispatcher, user: User, options: Options) {
+    init(authentication: Authentication, dispatcher: Dispatcher, user: User, options: Options, passwordlessActivity: PasswordlessUserActivity) {
         self.authentication = authentication
         self.dispatcher = dispatcher
         self.user = user
         self.options = options
+        self.passwordlessActivity = passwordlessActivity
     }
 
     func request(_ connection: String, callback: @escaping (PasswordlessAuthenticatableError?) -> ()) {
@@ -57,8 +59,10 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
                 self.dispatcher.dispatch(result: .passwordless(identifier, self.options.passwordlessMethod))
 
                 if type == .iOSLink {
-                    PasswordlessInteractor.onActivity = { password in
+
+                    self.passwordlessActivity.onActivity() { password, messagePresenter in
                         guard Int(password) != nil else {
+                            messagePresenter?.showError(PasswordlessAuthenticatableError.invalidLink)
                             return self.dispatcher.dispatch(result: .error(PasswordlessAuthenticatableError.invalidLink))
                         }
 
@@ -66,7 +70,9 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
                             .request(withIdentifier: identifier, password: password, options: self.options)
                             .start { result in
                                 self.handle(identifier: identifier, result: result) { error in
-
+                                    if let error = error {
+                                         messagePresenter?.showError(error)
+                                    }
                                 }
                         }
                     }
@@ -85,9 +91,7 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
         guard let password = code ?? self.code, self.validCode, let identifier = identifier ?? self.identifier, self.user.validEmail
             else { return callback(.nonValidInput) }
 
-        let credentialAuth = CredentialAuth(oidc: options.oidcConformant, realm: connection, authentication: authentication)
-
-        credentialAuth
+        CredentialAuth(oidc: options.oidcConformant, realm: connection, authentication: authentication)
             .request(withIdentifier: identifier, password: password, options: self.options)
             .start { result in
                 self.handle(identifier: identifier, result: result, callback: callback)
@@ -123,11 +127,25 @@ struct PasswordlessInteractor: PasswordlessAuthenticatable, Loggable {
     }
 }
 
-extension PasswordlessInteractor: PasswordlessActivity {
+class PasswordlessActivity: PasswordlessUserActivity {
 
-    static var onActivity: (String) -> () = { _ in }
+    static let shared = PasswordlessActivity()
 
-    static func continueAuth(withActivity userActivity: NSUserActivity) -> Bool {
+    private(set) var onActivity: (String, inout MessagePresenter?) -> () = { _ in }
+    private(set) var messagePresenter: MessagePresenter?
+
+    private init() {}
+
+    func onActivity(callback: @escaping (String, inout MessagePresenter?) -> ()) {
+        self.onActivity = callback
+    }
+
+    func withMessagePresenter(_ messagePresenter: MessagePresenter?) -> Self {
+        self.messagePresenter = messagePresenter
+        return self
+    }
+
+    func continueAuth(withActivity userActivity: NSUserActivity) -> Bool {
         guard userActivity.activityType == NSUserActivityTypeBrowsingWeb, let url = userActivity.webpageURL,
             let components = URLComponents(url: url, resolvingAgainstBaseURL: true) else { return false }
 
@@ -136,8 +154,8 @@ extension PasswordlessInteractor: PasswordlessActivity {
 
         guard let key = items.filter({ $0.name == "code" }).first, let code = key.value else { return false }
 
-        onActivity(code)
-        onActivity = { _ in }
+        self.onActivity(code, &messagePresenter)
+        self.onActivity = { _ in }
         return true
     }
 }
